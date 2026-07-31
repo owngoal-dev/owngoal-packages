@@ -1,0 +1,27 @@
+{
+  "class": "FeaturedBannersView",
+  "itemSize": "{263, 148}",
+  "itemCornerRadius": 10,
+  "banners": [
+    {
+      "url": "https://raw.githubusercontent.com/owngoal-dev/Fila/main/Documentation/screenshots.png",
+      "title": "Fila",
+      "package": "wiki.qaq.fila"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/owngoal-dev/iGhostVT/main/Documents/screenshots.png",
+      "title": "iGhostVT",
+      "package": "wiki.qaq.ighostvt"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/owngoal-dev/CocoaInspector/main/Documents/screenshots.png",
+      "title": "Inspector",
+      "package": "wiki.qaq.inspector"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/Lakr233/Irisin/main-4.0/Resources/main.jpeg",
+      "title": "Irisin",
+      "package": "wiki.qaq.irisin"
+    }
+  ]
+}

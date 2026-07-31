@@ -1,0 +1,56 @@
+{
+  "packages": [
+    {
+      "repository": "https://github.com/owngoal-dev/CocoaInspector",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/Fila",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/iGhostVT",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64", "xros-arm64e"]
+    },
+    {
+      "repository": "https://github.com/Lakr233/Irisin",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/Mako",
+      "architectures": ["iphoneos-arm64e"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/kk",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/codex",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/claude",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/grok",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/fastfetch",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/fish",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/coreutils",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/icli",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    }
+  ]
+}

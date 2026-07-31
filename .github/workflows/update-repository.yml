@@ -1,0 +1,156 @@
+name: Build and Deploy APT Repository
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/update-repository.yml"
+      - "assets/**"
+      - "debs/**"
+      - "scripts/fetch-packages.sh"
+      - "scripts/update-repository.sh"
+      - "CNAME"
+      - "CydiaIcon.png"
+      - "index.html"
+      - "manifest.json"
+      - "sileo-featured.json"
+  schedule:
+    # Pick up new upstream releases once a day.
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      # What this build produced, for the verify job to wait for: the CDN
+      # in front of Pages keeps serving the previous deploy's files for up
+      # to their max-age, and a cache-busting query string does not reach
+      # past it, so the served files can only be judged against these.
+      release_sha256: ${{ steps.checksums.outputs.release }}
+      packages_sha256: ${{ steps.checksums.outputs.packages }}
+      packages_xz_sha256: ${{ steps.checksums.outputs.packages_xz }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install repository tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes apt-utils xz-utils jq
+
+      - name: Build repository
+        env:
+          # PACKAGE_FETCH_TOKEN reaches releases in private source repositories;
+          # the default token only raises the public API rate limit.
+          PACKAGE_FETCH_TOKEN: ${{ secrets.PACKAGE_FETCH_TOKEN || secrets.GITHUB_TOKEN }}
+        run: ./scripts/update-repository.sh
+
+      - name: Record index checksums
+        id: checksums
+        run: |
+          for name in Release Packages Packages.xz; do
+            key="$(echo "$name" | tr '[:upper:].' '[:lower:]_')"
+            echo "$key=$(sha256sum "_site/$name" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+  verify:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+
+    steps:
+      # A client fetches Release and then the indexes it names, so the
+      # repository is only usable once every one of those files is the
+      # one this build wrote. The CDN in front of Pages hands out the
+      # previous deploy's copy of a file until its max-age (600s) runs
+      # out — per file, so Packages can be current while Release is
+      # still the old one, which is exactly the Hash Sum mismatch a
+      # client would see — and a cache-busting query string does not
+      # get past it. So each served file is compared with the checksum
+      # the build job recorded, and the check waits out the max-age
+      # before calling the deploy a failure.
+      - name: Verify the served repository is this build
+        env:
+          REPOSITORY_URL: ${{ needs.deploy.outputs.page_url }}
+          EXPECTED_RELEASE: ${{ needs.build.outputs.release_sha256 }}
+          EXPECTED_PACKAGES: ${{ needs.build.outputs.packages_sha256 }}
+          EXPECTED_PACKAGES_XZ: ${{ needs.build.outputs.packages_xz_sha256 }}
+        run: |
+          for expected in "$EXPECTED_RELEASE" "$EXPECTED_PACKAGES" "$EXPECTED_PACKAGES_XZ"; do
+            if [[ ! "$expected" =~ ^[0-9a-f]{64}$ ]]; then
+              echo "the build job recorded no index checksums" >&2
+              exit 1
+            fi
+          done
+
+          verification_dir="$(mktemp -d)"
+          trap 'rm -rf -- "$verification_dir"' EXIT
+          repository_url="${REPOSITORY_URL%/}"
+
+          # Fetched the way a client fetches them: plain URLs, no cache
+          # buster, so what passes here is what an apt on a device gets.
+          served_sha256() {
+            curl --fail --silent --show-error "$repository_url/$1" \
+              --output "$verification_dir/$1" || return 1
+            sha256sum "$verification_dir/$1" | cut -d' ' -f1
+          }
+
+          verify_once() {
+            local stale=()
+            [[ "$(served_sha256 Release)" == "$EXPECTED_RELEASE" ]] || stale+=(Release)
+            [[ "$(served_sha256 Packages)" == "$EXPECTED_PACKAGES" ]] || stale+=(Packages)
+            [[ "$(served_sha256 Packages.xz)" == "$EXPECTED_PACKAGES_XZ" ]] || stale+=(Packages.xz)
+            if ((${#stale[@]} == 0)); then
+              return 0
+            fi
+            echo "still serving the previous deploy: ${stale[*]}" >&2
+            return 1
+          }
+
+          # 24 attempts, 30s apart: twelve minutes, past the 600s max-age
+          # plus the time the edge takes to notice the origin changed.
+          for attempt in $(seq 1 24); do
+            if verify_once; then
+              echo "the served repository is this build (attempt $attempt)"
+              exit 0
+            fi
+            if [[ "$attempt" -lt 24 ]]; then
+              sleep 30
+            fi
+          done
+          echo "the served repository still is not this build after twelve minutes" >&2
+          exit 1

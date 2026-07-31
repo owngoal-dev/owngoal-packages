@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#fafafa">
+    <meta
+      name="description"
+      content="The official OwnGoal Studio APT repository for iOS packages."
+    >
+    <title>OwnGoal Packages</title>
+    <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./assets/styles.css">
+    <script src="./assets/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <a class="brand" href="https://owngoal.dev/" aria-label="Own Goal Studio home">
+        <img src="./assets/favicon.svg" alt="" width="20" height="20">
+        <span>OwnGoal Studio</span>
+      </a>
+
+      <nav aria-label="Primary navigation">
+        <a href="https://github.com/owngoal-dev">GitHub</a>
+        <a href="https://discord.gg/vqhDEep2mN">Discord</a>
+        <a href="mailto:not-gonna-reply@owngoal.dev">Contact</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="page-title">
+        <h1 id="page-title">Package Sources</h1>
+      </section>
+
+      <section class="repository" aria-labelledby="repository-title">
+        <div class="source-grid">
+          <a
+            class="source-card"
+            href="irisin://repository/add?url=https://apt.owngoal.dev"
+          >
+            <img
+              class="source-icon"
+              src="./assets/irisin.png"
+              alt=""
+              width="44"
+              height="44"
+            >
+            <span class="source-copy">
+              <strong>Add to Irisin</strong>
+              <span>apt.owngoal.dev</span>
+            </span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 17 17 7"></path>
+              <path d="M8 7h9v9"></path>
+            </svg>
+          </a>
+
+          <a
+            class="source-card"
+            href="sileo://source/https://apt.owngoal.dev"
+          >
+            <img
+              class="source-icon"
+              src="./assets/sileo.svg"
+              alt=""
+              width="44"
+              height="44"
+            >
+            <span class="source-copy">
+              <strong>Add to Sileo</strong>
+              <span>apt.owngoal.dev</span>
+            </span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 17 17 7"></path>
+              <path d="M8 7h9v9"></path>
+            </svg>
+          </a>
+        </div>
+      </section>
+
+      <section class="packages" aria-labelledby="packages-title">
+        <div class="section-heading">
+          <h2 id="packages-title">Packages</h2>
+          <span id="packages-count"></span>
+        </div>
+        <div class="package-grid" id="package-grid">
+          <p class="packages-status">Loading packages…</p>
+        </div>
+        <noscript>
+          <p class="packages-status">
+            JavaScript is off — browse packages on
+            <a href="https://github.com/owngoal-dev">GitHub</a>.
+          </p>
+        </noscript>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        OwnGoal Studio © 2026
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/owngoal-dev">GitHub</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://discord.gg/vqhDEep2mN">Discord</a>
+        <span aria-hidden="true">·</span>
+        <a href="mailto:not-gonna-reply@owngoal.dev">Email</a>
+      </p>
+    </footer>
+  </body>
+</html>
