@@ -13,6 +13,10 @@
       "architectures": ["iphoneos-arm64e", "iphoneos-arm64", "xros-arm64e"]
     },
     {
+      "repository": "https://github.com/Lakr233/Irisin",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    },
+    {
       "repository": "https://github.com/owngoal-dev/Mako",
       "architectures": ["iphoneos-arm64e"]
     },
