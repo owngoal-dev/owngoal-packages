@@ -28,9 +28,11 @@ output_dir="$repository_root/_site"
 mkdir -p "$site_dir" "$index_dir" "$pool_dir/debs"
 trap 'rm -rf -- "$work_dir"' EXIT
 
-# The published pool merges the tracked packages with the ones downloaded from
-# the manifest so both kinds of package share a single relative Filename prefix.
+# Scan a local pool so apt-ftparchive can read control data and hashes.
+# Manifest packages are then published with their GitHub release URLs, and
+# only committed debs stay in the Pages artifact.
 shopt -s nullglob
+committed_packages=("$repository_root/debs"/*.deb)
 pool_sources=("$repository_root/debs"/*.deb "$download_dir"/*.deb)
 shopt -u nullglob
 
@@ -38,6 +40,8 @@ if ((${#pool_sources[@]} == 0)); then
   echo "No packages available to index." >&2
   exit 65
 fi
+
+release_urls_file="$download_dir/release-urls.tsv"
 
 for package_file in "${pool_sources[@]}"; do
   package_name="$(basename -- "$package_file")"
@@ -47,7 +51,22 @@ for package_file in "${pool_sources[@]}"; do
     exit 65
   fi
 
-  cp "$package_file" "$pool_dir/debs/$package_name"
+  case "$package_file" in
+    "$download_dir"/*)
+      if [[ ! -f "$release_urls_file" ]] || ! awk -F '\t' -v name="$package_name" '
+        $1 == name && $2 ~ /^https:\/\// { found = 1 }
+        END { exit !found }
+      ' "$release_urls_file"; then
+        echo "Downloaded package has no GitHub release URL: $package_name" >&2
+        exit 65
+      fi
+      ;;
+  esac
+
+  # The scanned pool can be several gigabytes; hardlink instead of copying.
+  if ! ln "$package_file" "$pool_dir/debs/$package_name" 2>/dev/null; then
+    cp "$package_file" "$pool_dir/debs/$package_name"
+  fi
 done
 
 # Scan the assembled pool and generate every repository index. Running from the
@@ -81,6 +100,54 @@ awk '
   }
 ' "$index_dir/Packages"
 
+# apt-ftparchive only emits relative paths. Sileo, Zebra, and apt all fetch an
+# absolute Filename as-is, so rewrite after the scan; Size and SHA-256 still
+# describe the file we hashed.
+if [[ -s "$release_urls_file" ]]; then
+  rewritten_file="$index_dir/Packages.rewritten"
+  awk -v urls_file="$release_urls_file" '
+    BEGIN {
+      while ((getline line < urls_file) > 0) {
+        split(line, fields, "\t")
+        name = fields[1]
+        url = fields[2]
+        if (name != "" && url ~ /^https:\/\//) {
+          urls[name] = url
+        }
+      }
+      close(urls_file)
+    }
+
+    /^Filename: / {
+      path = $0
+      sub(/^Filename: /, "", path)
+      file = path
+      sub(/^.*\//, "", file)
+      if (file in urls) {
+        print "Filename: " urls[file]
+        seen[file] = 1
+        next
+      }
+    }
+
+    { print }
+
+    END {
+      missing = 0
+      for (name in urls) {
+        if (!(name in seen)) {
+          printf "Packages is missing rewritten Filename for %s\n", name > "/dev/stderr"
+          missing = 1
+        }
+      }
+      if (missing) {
+        exit 1
+      }
+    }
+  ' "$index_dir/Packages" > "$rewritten_file"
+  mv "$rewritten_file" "$index_dir/Packages"
+fi
+
 xz -9e -c "$index_dir/Packages" > "$index_dir/Packages.xz"
 
 # Keeping Release outside the scanned directory prevents a self-referential hash.
@@ -95,9 +162,15 @@ apt-ftparchive \
   -o APT::FTPArchive::Release::Description="Official iOS packages from OwnGoal Studio" \
   release "$index_dir" > "$work_dir/Release"
 
-# Assemble the complete Pages artifact only after all metadata has been generated.
+# Assemble the Pages artifact only after all metadata has been generated.
+# Downloaded release assets are not copied; clients fetch them from GitHub.
 cp -R assets "$site_dir/assets"
-cp -R "$pool_dir/debs" "$site_dir/debs"
+if ((${#committed_packages[@]} > 0)); then
+  mkdir -p "$site_dir/debs"
+  for package_file in "${committed_packages[@]}"; do
+    cp "$package_file" "$site_dir/debs/$(basename -- "$package_file")"
+  done
+fi
 cp CNAME CydiaIcon.png index.html manifest.json "$site_dir/"
 cp "$index_dir/Packages" "$index_dir/Packages.xz" "$site_dir/"
 cp "$work_dir/Release" "$site_dir/Release"

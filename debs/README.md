@@ -7,12 +7,13 @@ Place distributable `.deb` files in this directory, then run:
 ```
 
 Packages downloaded from the GitHub releases declared in `manifest.json` are
-indexed alongside these files and are published from the same `debs/` path. Only
-the `.deb` files committed here are tracked; the downloads and all indexes are
-build artifacts.
+indexed alongside these files. Their `Filename` in `_site/Packages` is the
+GitHub release URL, so they are not copied into the published `debs/` path.
+Only the `.deb` files committed here are tracked and served from Pages; the
+downloads and all indexes are build artifacts.
 
-The generated `_site/Packages` index records paths relative to the published
-repository root.
+Committed packages keep a `Filename` relative to the published repository
+root (`debs/<file>.deb`).
 
 Each package must define the following fields in `DEBIAN/control`:
 

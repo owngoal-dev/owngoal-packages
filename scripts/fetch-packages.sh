@@ -8,6 +8,14 @@ manifest_file="${PACKAGE_MANIFEST:-$repository_root/manifest.json}"
 download_dir="${PACKAGE_DOWNLOAD_DIR:-$repository_root/downloads}"
 fetch_attempts="${PACKAGE_FETCH_ATTEMPTS:-5}"
 fetch_delay="${PACKAGE_FETCH_DELAY:-3}"
+# At most this many stable releases per repository. A repo with fewer
+# contributes all of them. The files themselves stay on GitHub.
+keep_versions="${PACKAGE_KEEP_VERSIONS:-8}"
+
+if [[ ! "$keep_versions" =~ ^[1-9][0-9]*$ ]]; then
+  echo "PACKAGE_KEEP_VERSIONS must be a positive integer: $keep_versions" >&2
+  exit 64
+fi
 
 required_commands=(curl jq)
 for command_name in "${required_commands[@]}"; do
@@ -143,6 +151,11 @@ download_asset() {
 rm -rf -- "$download_dir"
 mkdir -p "$download_dir"
 
+# Clients download each package straight from its GitHub release, so the build
+# records where every fetched file came from: name, download URL, repository.
+release_urls_file="$download_dir/release-urls.tsv"
+: > "$release_urls_file"
+
 package_count="$(jq '.packages | length' "$manifest_file")"
 if ((package_count == 0)); then
   echo "No packages declared in $manifest_file"
@@ -171,10 +184,10 @@ for ((package_index = 0; package_index < package_count; package_index++)); do
     exit 75
   fi
 
-  # GitHub returns releases newest first, so the first entry that is neither a
-  # draft, a prerelease, nor tagged as a preview build is the latest stable one.
+  # GitHub returns releases newest first. Take at most keep_versions entries
+  # that are neither a draft, a prerelease, nor tagged as a preview build.
   selection_file="$work_dir/selection-$package_index.json"
-  jq '
+  jq --argjson keep "$keep_versions" '
     [
       .[]
       | select((.draft | not) and (.prerelease | not))
@@ -183,99 +196,122 @@ for ((package_index = 0; package_index < package_count; package_index++)); do
           | test("(^|[^A-Za-z0-9])(alpha|beta|rc|pre|preview|dev|nightly|snapshot)([^A-Za-z0-9]|$)"; "i")
           | not
         )
-    ]
-    | first
-      | if . == null then
-          null
-        else
-          {
-            tag: .tag_name,
-            assets: (.assets // [])
-          }
-      end
+    ][:$keep]
+    | map({
+        tag: .tag_name,
+        assets: (.assets // [])
+      })
   ' "$releases_file" > "$selection_file"
 
-  if [[ "$(jq -r 'if . == null then "missing" else "found" end' "$selection_file")" == "missing" ]]; then
+  release_count="$(jq 'length' "$selection_file")"
+  if ((release_count == 0)); then
     echo "$slug has no stable release." >&2
     exit 65
   fi
 
-  release_tag="$(jq -r '.tag' "$selection_file")"
-  checksums_url="$(jq -r '
-    .assets
-    | map(select(.name | test("^SHA256SUMS(\\.txt)?$"; "i")))
-    | first
-    | .url // ""
-  ' "$selection_file")"
+  for ((release_index = 0; release_index < release_count; release_index++)); do
+    release_file="$work_dir/release-$package_index-$release_index.json"
+    jq --argjson index "$release_index" '.[$index]' "$selection_file" > "$release_file"
 
-  # Releases that publish a checksum manifest let the download be verified
-  # against the digest the build produced, not just against archive corruption.
-  # Download it once per repository and reuse it for every architecture.
-  checksums_file=""
-  if [[ -n "$checksums_url" ]]; then
-    checksums_file="$work_dir/checksums-$package_index.txt"
-    if ! retry "Downloading SHA256SUMS from $slug@$release_tag" \
-      download_file "$checksums_url" "$checksums_file"; then
-      exit 75
-    fi
-  fi
+    release_tag="$(jq -r '.tag' "$release_file")"
+    checksums_url="$(jq -r '
+      .assets
+      | map(select(.name | test("^SHA256SUMS(\\.txt)?$"; "i")))
+      | first
+      | .url // ""
+    ' "$release_file")"
 
-  for ((architecture_index = 0; architecture_index < architecture_count; architecture_index++)); do
-    architecture="$(jq -r \
-      --argjson package_index "$package_index" \
-      --argjson architecture_index "$architecture_index" \
-      '.packages[$package_index].architectures[$architecture_index]' \
-      "$manifest_file")"
-
-    IFS=$'\t' read -r asset_name asset_url < <(
-      jq -r --arg architecture "$architecture" '
-        [
-          .assets[]
-          | select(.name | test("\($architecture)\\.deb$"; "i"))
-        ]
-        | first
-        | [(.name // ""), (.url // "")]
-        | @tsv
-      ' "$selection_file"
-    )
-
-    if [[ -z "$asset_name" ]]; then
-      echo "Release $release_tag of $slug has no $architecture .deb asset." >&2
-      exit 65
-    fi
-
-    expected_sha=""
-    if [[ -n "$checksums_file" ]]; then
-      expected_sha="$(awk -v name="$asset_name" '
-        {
-          sub(/\r$/, "")
-          sub(/^\*/, "", $2)
-          if ($2 == name) {
-            print $1
-            exit
-          }
-        }
-      ' "$checksums_file")"
-
-      if [[ -z "$expected_sha" ]]; then
-        echo "SHA256SUMS of $slug@$release_tag does not list $asset_name; skipping checksum verification." >&2
+    # Releases that publish a checksum manifest let the download be verified
+    # against the digest the build produced, not just against archive corruption.
+    # Download it once per release and reuse it for every architecture.
+    checksums_file=""
+    if [[ -n "$checksums_url" ]]; then
+      checksums_file="$work_dir/checksums-$package_index-$release_index.txt"
+      if ! retry "Downloading SHA256SUMS from $slug@$release_tag" \
+        download_file "$checksums_url" "$checksums_file"; then
+        exit 75
       fi
     fi
 
-    if [[ -e "$download_dir/$asset_name" ]]; then
-      echo "Duplicate package file name across manifest entries: $asset_name" >&2
-      exit 65
-    fi
+    for ((architecture_index = 0; architecture_index < architecture_count; architecture_index++)); do
+      architecture="$(jq -r \
+        --argjson package_index "$package_index" \
+        --argjson architecture_index "$architecture_index" \
+        '.packages[$package_index].architectures[$architecture_index]' \
+        "$manifest_file")"
 
-    if ! retry "Downloading $asset_name from $slug@$release_tag" \
-      download_asset "$asset_url" "$download_dir/$asset_name" "$expected_sha"; then
-      exit 75
-    fi
+      IFS=$'\t' read -r asset_name asset_url download_url < <(
+        jq -r --arg architecture "$architecture" '
+          [
+            .assets[]
+            | select(.name | test("\($architecture)\\.deb$"; "i"))
+          ]
+          | first
+          | [(.name // ""), (.url // ""), (.browser_download_url // "")]
+          | @tsv
+        ' "$release_file"
+      )
 
-    if [[ -n "$expected_sha" ]]; then
-      echo "Fetched $asset_name from $slug@$release_tag (SHA-256 verified)"
-    else
-      echo "Fetched $asset_name from $slug@$release_tag"
-    fi
+      if [[ -z "$asset_name" ]]; then
+        # Older releases may predate a layout; only the newest must ship them all.
+        if ((release_index > 0)); then
+          echo "Release $release_tag of $slug has no $architecture .deb asset; skipping." >&2
+          continue
+        fi
+        echo "Release $release_tag of $slug has no $architecture .deb asset." >&2
+        exit 65
+      fi
+
+      expected_sha=""
+      if [[ -n "$checksums_file" ]]; then
+        expected_sha="$(awk -v name="$asset_name" '
+          {
+            sub(/\r$/, "")
+            sub(/^\*/, "", $2)
+            if ($2 == name) {
+              print $1
+              exit
+            }
+          }
+        ' "$checksums_file")"
+
+        if [[ -z "$expected_sha" ]]; then
+          echo "SHA256SUMS of $slug@$release_tag does not list $asset_name; skipping checksum verification." >&2
+        fi
+      fi
+
+      if [[ -e "$download_dir/$asset_name" ]]; then
+        # A release can carry an older build's asset again; the newer release wins.
+        if awk -F '\t' -v name="$asset_name" -v slug="$slug" '
+          $1 == name && $3 == slug { found = 1 }
+          END { exit !found }
+        ' "$release_urls_file"; then
+          echo "Skipping $asset_name from $slug@$release_tag; a newer release already provides it."
+          continue
+        fi
+        echo "Duplicate package file name across manifest entries: $asset_name" >&2
+        exit 65
+      fi
+
+      # Clients fetch this URL from Packages, so it must be a public HTTPS
+      # browser download link, not the GitHub API asset endpoint.
+      if [[ -z "$download_url" || "$download_url" != https://* ]]; then
+        echo "Release $release_tag of $slug has no HTTPS download URL for $asset_name." >&2
+        exit 65
+      fi
+
+      if ! retry "Downloading $asset_name from $slug@$release_tag" \
+        download_asset "$asset_url" "$download_dir/$asset_name" "$expected_sha"; then
+        exit 75
+      fi
+
+      printf '%s\t%s\t%s\n' "$asset_name" "$download_url" "$slug" >> "$release_urls_file"
+
+      if [[ -n "$expected_sha" ]]; then
+        echo "Fetched $asset_name from $slug@$release_tag (SHA-256 verified)"
+      else
+        echo "Fetched $asset_name from $slug@$release_tag"
+      fi
+    done
   done
 done
