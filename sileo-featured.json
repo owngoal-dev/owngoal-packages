@@ -22,6 +22,11 @@
       "url": "https://raw.githubusercontent.com/Lakr233/Irisin/main-4.0/Resources/main.jpeg",
       "title": "Irisin",
       "package": "wiki.qaq.irisin"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/owngoal-dev/Xrash/main/Documents/banner.png",
+      "title": "Xrash",
+      "package": "wiki.qaq.xrash"
     }
   ]
 }
