@@ -104,8 +104,11 @@
       throw new Error("No package manifest could be loaded.");
     }
 
-    packages.sort((a, b) =>
-      a.name.localeCompare(b.name, "en", { sensitivity: "base" }),
+    // Packages with an icon lead; each group is alphabetical.
+    packages.sort(
+      (a, b) =>
+        Boolean(b.icon) - Boolean(a.icon) ||
+        a.name.localeCompare(b.name, "en", { sensitivity: "base" }),
     );
 
     grid.innerHTML = "";
