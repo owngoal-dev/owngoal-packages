@@ -51,6 +51,10 @@
     {
       "repository": "https://github.com/owngoal-dev/icli",
       "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/Xrash",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
     }
   ]
 }
