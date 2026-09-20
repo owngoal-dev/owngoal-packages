@@ -2,7 +2,7 @@
 
 Official APT source for OwnGoal Studio.
 
-Add `https://apt.owngoal.dev/` in Irisin, Sileo, or Zebra.
+Add `https://apt.owngoal.dev/` in [Irisin](https://lakr233.github.io/Irisin/) or Sileo.
 
 ```text
 deb [trusted=yes] https://apt.owngoal.dev/ ./
