@@ -10,12 +10,17 @@ fetch_attempts="${PACKAGE_FETCH_ATTEMPTS:-5}"
 fetch_delay="${PACKAGE_FETCH_DELAY:-3}"
 # At most this many stable releases per repository. A repo with fewer
 # contributes all of them. The files themselves stay on GitHub.
-keep_versions="${PACKAGE_KEEP_VERSIONS:-8}"
+keep_versions="${PACKAGE_KEEP_VERSIONS:-5}"
+# Manifest entries fetched at once. GitHub's secondary rate limit allows 100
+# concurrent requests, and a full run is a few hundred of the 5000 per hour.
+fetch_jobs="${PACKAGE_FETCH_JOBS:-8}"
 
-if [[ ! "$keep_versions" =~ ^[1-9][0-9]*$ ]]; then
-  echo "PACKAGE_KEEP_VERSIONS must be a positive integer: $keep_versions" >&2
-  exit 64
-fi
+for setting in PACKAGE_KEEP_VERSIONS:"$keep_versions" PACKAGE_FETCH_JOBS:"$fetch_jobs"; do
+  if [[ ! "${setting#*:}" =~ ^[1-9][0-9]*$ ]]; then
+    echo "${setting%%:*} must be a positive integer: ${setting#*:}" >&2
+    exit 64
+  fi
+done
 
 required_commands=(curl jq)
 for command_name in "${required_commands[@]}"; do
@@ -162,7 +167,13 @@ if ((package_count == 0)); then
   exit 0
 fi
 
-for ((package_index = 0; package_index < package_count; package_index++)); do
+# Runs in a subshell per manifest entry, so an exit here ends only that entry
+# and its status is collected below.
+fetch_package() {
+  local package_index="$1"
+  local release_urls_file="$work_dir/release-urls-$package_index.tsv"
+  : > "$release_urls_file"
+
   repository="$(jq -r --argjson index "$package_index" '.packages[$index].repository // ""' "$manifest_file")"
   architecture_count="$(jq --argjson index "$package_index" '.packages[$index].architectures | length' "$manifest_file")"
 
@@ -280,17 +291,13 @@ for ((package_index = 0; package_index < package_count; package_index++)); do
         fi
       fi
 
-      if [[ -e "$download_dir/$asset_name" ]]; then
-        # A release can carry an older build's asset again; the newer release wins.
-        if awk -F '\t' -v name="$asset_name" -v slug="$slug" '
-          $1 == name && $3 == slug { found = 1 }
-          END { exit !found }
-        ' "$release_urls_file"; then
-          echo "Skipping $asset_name from $slug@$release_tag; a newer release already provides it."
-          continue
-        fi
-        echo "Duplicate package file name across manifest entries: $asset_name" >&2
-        exit 65
+      # A release can carry an older build's asset again; the newer release wins.
+      if awk -F '\t' -v name="$asset_name" '
+        $1 == name { found = 1 }
+        END { exit !found }
+      ' "$release_urls_file"; then
+        echo "Skipping $asset_name from $slug@$release_tag; a newer release already provides it."
+        continue
       fi
 
       # Clients fetch this URL from Packages, so it must be a public HTTPS
@@ -314,4 +321,34 @@ for ((package_index = 0; package_index < package_count; package_index++)); do
       fi
     done
   done
+}
+
+# Manifest entries are fetched side by side, fetch_jobs at a time; releases
+# within one entry stay ordered so the newest release still wins a name.
+# ponytail: batches wait for their slowest entry; use wait -n if that matters.
+fetch_status=0
+for ((batch_start = 0; batch_start < package_count; batch_start += fetch_jobs)); do
+  batch_pids=()
+  for ((package_index = batch_start; package_index < package_count && package_index < batch_start + fetch_jobs; package_index++)); do
+    (fetch_package "$package_index") &
+    batch_pids+=("$!")
+  done
+  for batch_pid in "${batch_pids[@]}"; do
+    # Keep the first failure's exit code; it says why the fetch gave up.
+    wait "$batch_pid" || fetch_status="$((fetch_status == 0 ? $? : fetch_status))"
+  done
 done
+
+if ((fetch_status != 0)); then
+  exit "$fetch_status"
+fi
+
+for ((package_index = 0; package_index < package_count; package_index++)); do
+  cat "$work_dir/release-urls-$package_index.tsv" >> "$release_urls_file"
+done
+
+duplicate_names="$(cut -f 1 "$release_urls_file" | sort | uniq -d)"
+if [[ -n "$duplicate_names" ]]; then
+  echo "Duplicate package file name across manifest entries: $duplicate_names" >&2
+  exit 65
+fi
