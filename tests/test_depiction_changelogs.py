@@ -61,7 +61,7 @@ class ChangelogTests(unittest.TestCase):
         self.assertEqual(views[3]["views"][0]["text"], "Earlier")
         self.assertEqual(len(views), 5)
         self.assertEqual(changelogs.refresh(self.workspace, ["Fila"], fetch), [])
-        self.assertEqual(json.loads(self.depiction_path("CocoaInspector").read_text()), self.original)
+        self.assertEqual(json.loads(self.depiction_path("Inspector").read_text()), self.original)
 
     def test_invalid_later_response_changes_no_files(self):
         originals = {repo: self.depiction_path(repo).read_bytes() for repo in changelogs.DEPICTIONS}

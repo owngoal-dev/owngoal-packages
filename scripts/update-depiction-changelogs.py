@@ -12,7 +12,7 @@ import sys
 
 DEPICTIONS = {
     "Fila": "Documentation/Site/depiction.json",
-    "CocoaInspector": "Documents/Site/depiction.json",
+    "Inspector":"Documents/Site/depiction.json",
     "iGhostVT": "Documents/Site/depiction.json",
 }
 

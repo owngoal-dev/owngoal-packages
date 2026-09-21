@@ -17,7 +17,7 @@ releases and serves each `.deb` from its GitHub release URL.
 {
   "packages": [
     {
-      "repository": "https://github.com/owngoal-dev/CocoaInspector",
+      "repository": "https://github.com/owngoal-dev/Inspector",
       "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
     }
   ]
