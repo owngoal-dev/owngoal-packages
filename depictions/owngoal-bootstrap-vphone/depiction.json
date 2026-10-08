@@ -1,0 +1,47 @@
+{
+  "class": "DepictionTabView",
+  "minVersion": "0.4",
+  "headerImage": "https://apt.owngoal.dev/depictions/owngoal-bootstrap-vphone/banner.png",
+  "tabs": [
+    {
+      "class": "DepictionStackView",
+      "tabname": "Details",
+      "views": [
+        {
+          "class": "DepictionSubheaderView",
+          "title": "Set Up a vphone in One Install",
+          "useBoldText": true
+        },
+        {
+          "class": "DepictionHeaderView",
+          "title": "Description"
+        },
+        {
+          "class": "DepictionSeparatorView"
+        },
+        {
+          "class": "DepictionMarkdownView",
+          "markdown": "Installs the base system and command-line tools a vphone needs, then the five OwnGoal apps.\n\n## Tools\n\n- **Packages:** apt, dpkg\n- **Shells:** bash, zsh, dash\n- **Root:** sudo\n- **Commands:** coreutils, debianutils, shell-cmds, system-cmds, file-cmds, diffutils, findutils, grep, sed, gawk, less\n- **Archives:** tar, gzip, xz-utils\n- **Terminal:** ncurses-bin, ncurses-term, profile.d\n- **Network:** openssh-server, ca-certificates, curl, wget\n- **Editors:** nano, vim\n- **Utilities:** htop, git, fastfetch\n- **iOS:** uikittools, launchctl\n\n## Apps\n\nOwnGoal Essential Apps brings in:\n\n- **Irisin:** Browse repositories, install packages, and keep your tweaks updated.\n- **Fila:** Browse, organize, and edit files, with root access.\n- **iGhostVT:** A Ghostty-powered terminal with multiple sessions.\n- **Xrash:** Read, symbolicate, and share crash reports.\n- **Inspector:** Monitor running processes and their CPU, memory, and threads.\n\nThis package installs no files of its own. Removing it keeps everything it installed until you run `apt autoremove`. Removing any one of those packages also removes this one.\n\nRequires iOS 16 or later and custom firmware with a roothide or rootless bootstrap.",
+          "useSpacing": true
+        },
+        {
+          "class": "DepictionHeaderView",
+          "title": "Information"
+        },
+        {
+          "class": "DepictionSeparatorView"
+        },
+        {
+          "class": "DepictionTableTextView",
+          "title": "iOS Versions",
+          "text": "16 or later"
+        },
+        {
+          "class": "DepictionTableTextView",
+          "title": "Developer",
+          "text": "OwnGoal Studio"
+        }
+      ]
+    }
+  ]
+}
