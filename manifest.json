@@ -121,6 +121,12 @@
         "iphoneos-arm64e",
         "iphoneos-arm64"
       ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/idownload-cli",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
     }
   ]
 }
