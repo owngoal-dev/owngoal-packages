@@ -63,6 +63,10 @@
     {
       "repository": "https://github.com/owngoal-dev/TrollStore",
       "architectures": ["iphoneos-arm64e"]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/DuoStatusRing",
+      "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]
     }
   ]
 }
