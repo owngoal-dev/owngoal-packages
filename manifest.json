@@ -127,6 +127,13 @@
       "architectures": [
         "iphoneos-arm64e"
       ]
+    },
+    {
+      "repository": "https://github.com/LookInsideApp/LookInside-Tweak",
+      "architectures": [
+        "iphoneos-arm64e",
+        "iphoneos-arm64"
+      ]
     }
   ]
 }
