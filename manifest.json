@@ -134,6 +134,14 @@
         "iphoneos-arm64e",
         "iphoneos-arm64"
       ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/Apelin",
+      "architectures": [
+        "iphoneos-arm64e",
+        "iphoneos-arm64"
+      ],
+      "allPackages": true
     }
   ]
 }

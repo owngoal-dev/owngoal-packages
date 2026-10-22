@@ -58,13 +58,14 @@ if ! jq -e '
       (type == "string") and test("^[A-Za-z0-9._-]+$")
     )
     and ((.architectures | length) == (.architectures | unique | length))
+    and ((.allPackages // false) | type == "boolean")
   )
   and (
     ([.packages[].repository] | length)
     == ([.packages[].repository] | unique | length)
   )
 ' "$manifest_file" >/dev/null; then
-  echo "$manifest_file must define unique repositories with non-empty, unique architectures arrays." >&2
+  echo "$manifest_file must define unique repositories with non-empty, unique architectures arrays, and allPackages only as a boolean." >&2
   exit 65
 fi
 
@@ -176,6 +177,9 @@ fetch_package() {
 
   repository="$(jq -r --argjson index "$package_index" '.packages[$index].repository // ""' "$manifest_file")"
   architecture_count="$(jq --argjson index "$package_index" '.packages[$index].architectures | length' "$manifest_file")"
+  # A release that ships several packages (an app and its extensions) has each
+  # of them indexed; otherwise only its first .deb per architecture is.
+  all_packages="$(jq --argjson index "$package_index" '.packages[$index].allPackages // false' "$manifest_file")"
 
   # Accept the browser URL, the clone URL, or a bare owner/name slug.
   slug="$repository"
@@ -251,19 +255,18 @@ fetch_package() {
         '.packages[$package_index].architectures[$architecture_index]' \
         "$manifest_file")"
 
-      IFS=$'\t' read -r asset_name asset_url download_url < <(
-        jq -r --arg architecture "$architecture" '
-          [
-            .assets[]
-            | select(.name | test("\($architecture)\\.deb$"; "i"))
-          ]
-          | first
-          | [(.name // ""), (.url // ""), (.browser_download_url // "")]
-          | @tsv
-        ' "$release_file"
-      )
+      assets_file="$work_dir/assets-$package_index-$release_index-$architecture_index.tsv"
+      jq -r --arg architecture "$architecture" --argjson all "$all_packages" '
+        [
+          .assets[]
+          | select(.name | test("\($architecture)\\.deb$"; "i"))
+        ]
+        | if $all then .[] else (first // empty) end
+        | [(.name // ""), (.url // ""), (.browser_download_url // "")]
+        | @tsv
+      ' "$release_file" > "$assets_file"
 
-      if [[ -z "$asset_name" ]]; then
+      if [[ ! -s "$assets_file" ]]; then
         # Older releases may predate a layout; only the newest must ship them all.
         if ((release_index > 0)); then
           echo "Release $release_tag of $slug has no $architecture .deb asset; skipping." >&2
@@ -273,52 +276,55 @@ fetch_package() {
         exit 65
       fi
 
-      expected_sha=""
-      if [[ -n "$checksums_file" ]]; then
-        expected_sha="$(awk -v name="$asset_name" '
-          {
-            sub(/\r$/, "")
-            sub(/^\*/, "", $2)
-            if ($2 == name) {
-              print $1
-              exit
+      # Read on descriptor 3, so nothing in the body can consume the list.
+      while IFS=$'\t' read -r -u 3 asset_name asset_url download_url; do
+        expected_sha=""
+        if [[ -n "$checksums_file" ]]; then
+          expected_sha="$(awk -v name="$asset_name" '
+            {
+              sub(/\r$/, "")
+              sub(/^\*/, "", $2)
+              if ($2 == name) {
+                print $1
+                exit
+              }
             }
-          }
-        ' "$checksums_file")"
+          ' "$checksums_file")"
 
-        if [[ -z "$expected_sha" ]]; then
-          echo "SHA256SUMS of $slug@$release_tag does not list $asset_name; skipping checksum verification." >&2
+          if [[ -z "$expected_sha" ]]; then
+            echo "SHA256SUMS of $slug@$release_tag does not list $asset_name; skipping checksum verification." >&2
+          fi
         fi
-      fi
 
-      # A release can carry an older build's asset again; the newer release wins.
-      if awk -F '\t' -v name="$asset_name" '
-        $1 == name { found = 1 }
-        END { exit !found }
-      ' "$release_urls_file"; then
-        echo "Skipping $asset_name from $slug@$release_tag; a newer release already provides it."
-        continue
-      fi
+        # A release can carry an older build's asset again; the newer release wins.
+        if awk -F '\t' -v name="$asset_name" '
+          $1 == name { found = 1 }
+          END { exit !found }
+        ' "$release_urls_file"; then
+          echo "Skipping $asset_name from $slug@$release_tag; a newer release already provides it."
+          continue
+        fi
 
-      # Clients fetch this URL from Packages, so it must be a public HTTPS
-      # browser download link, not the GitHub API asset endpoint.
-      if [[ -z "$download_url" || "$download_url" != https://* ]]; then
-        echo "Release $release_tag of $slug has no HTTPS download URL for $asset_name." >&2
-        exit 65
-      fi
+        # Clients fetch this URL from Packages, so it must be a public HTTPS
+        # browser download link, not the GitHub API asset endpoint.
+        if [[ -z "$download_url" || "$download_url" != https://* ]]; then
+          echo "Release $release_tag of $slug has no HTTPS download URL for $asset_name." >&2
+          exit 65
+        fi
 
-      if ! retry "Downloading $asset_name from $slug@$release_tag" \
-        download_asset "$asset_url" "$download_dir/$asset_name" "$expected_sha"; then
-        exit 75
-      fi
+        if ! retry "Downloading $asset_name from $slug@$release_tag" \
+          download_asset "$asset_url" "$download_dir/$asset_name" "$expected_sha"; then
+          exit 75
+        fi
 
-      printf '%s\t%s\t%s\n' "$asset_name" "$download_url" "$slug" >> "$release_urls_file"
+        printf '%s\t%s\t%s\n' "$asset_name" "$download_url" "$slug" >> "$release_urls_file"
 
-      if [[ -n "$expected_sha" ]]; then
-        echo "Fetched $asset_name from $slug@$release_tag (SHA-256 verified)"
-      else
-        echo "Fetched $asset_name from $slug@$release_tag"
-      fi
+        if [[ -n "$expected_sha" ]]; then
+          echo "Fetched $asset_name from $slug@$release_tag (SHA-256 verified)"
+        else
+          echo "Fetched $asset_name from $slug@$release_tag"
+        fi
+      done 3< "$assets_file"
     done
   done
 }

@@ -24,6 +24,10 @@ releases and serves each `.deb` from its GitHub release URL.
 }
 ```
 
+Each release contributes its first `.deb` for each architecture. Add
+`"allPackages": true` when a release ships several packages, such as an app
+and its extensions, to index every one of them.
+
 Or put a `.deb` in `debs/` and push. Control fields are in
 [`debs/README.md`](debs/README.md). File names must be unique. Its depiction,
 icon, and banner go in `depictions/<package>/`.
