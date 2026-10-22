@@ -114,7 +114,13 @@ list_releases() {
     --header "Accept: application/vnd.github+json" \
     --header "X-GitHub-Api-Version: 2022-11-28" \
     "https://api.github.com/repos/$1/releases?per_page=100" \
-    --output "$2"
+    --output "$2" || return 1
+  # GitHub now and then lists no releases for a repository that has them. A
+  # repository with none fails either way, so an empty list is asked again.
+  if ! jq -e 'type == "array" and length > 0' "$2" >/dev/null; then
+    echo "GitHub listed no releases for $1." >&2
+    return 1
+  fi
 }
 
 download_file() {
