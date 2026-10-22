@@ -16,6 +16,9 @@ DEPICTIONS = {
     "iGhostVT": "Documents/Site/depiction.json",
 }
 
+# The changelog shows this many of the newest stable releases.
+CHANGELOG_RELEASES = 5
+
 
 def fetch_releases(repository):
     """Let gh manage authentication and pagination without exposing credentials."""
@@ -87,7 +90,7 @@ def changelog_tab(releases, repository):
         return None
     published.sort(key=lambda release: (release[0], release[1]), reverse=True)
     views = []
-    for timestamp, tag, name, body in published:
+    for timestamp, tag, name, body in published[:CHANGELOG_RELEASES]:
         # ISO dates remain unambiguous regardless of the machine's locale.
         views.append({
             "class": "DepictionLayerView",

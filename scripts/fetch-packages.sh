@@ -8,9 +8,10 @@ manifest_file="${PACKAGE_MANIFEST:-$repository_root/manifest.json}"
 download_dir="${PACKAGE_DOWNLOAD_DIR:-$repository_root/downloads}"
 fetch_attempts="${PACKAGE_FETCH_ATTEMPTS:-5}"
 fetch_delay="${PACKAGE_FETCH_DELAY:-3}"
-# At most this many stable releases per repository. A repo with fewer
-# contributes all of them. The files themselves stay on GitHub.
-keep_versions="${PACKAGE_KEEP_VERSIONS:-5}"
+# This many of a repository's newest stable releases, and the newest release
+# of the minor version before the newest one's: at most four by default. A
+# repo with fewer contributes all of them. The files themselves stay on GitHub.
+keep_versions="${PACKAGE_KEEP_VERSIONS:-3}"
 # Manifest entries fetched at once. GitHub's secondary rate limit allows 100
 # concurrent requests, and a full run is a few hundred of the 5000 per hour.
 fetch_jobs="${PACKAGE_FETCH_JOBS:-8}"
@@ -205,10 +206,16 @@ fetch_package() {
     exit 75
   fi
 
-  # GitHub returns releases newest first. Take at most keep_versions entries
-  # that are neither a draft, a prerelease, nor tagged as a preview build.
+  # GitHub returns releases newest first. Of those that are neither a draft,
+  # a prerelease, nor tagged as a preview build, take the keep_versions newest
+  # and the newest of the highest minor version below the newest one's. A
+  # minor version is the tag's first two numbers: v1.3.2 is 1.3.
   selection_file="$work_dir/selection-$package_index.json"
   jq --argjson keep "$keep_versions" '
+    def minor:
+      (.tag // "")
+      | capture("^[vV]?(?<major>[0-9]+)\\.(?<minor>[0-9]+)")
+      | [(.major | tonumber), (.minor | tonumber)];
     [
       .[]
       | select((.draft | not) and (.prerelease | not))
@@ -217,11 +224,19 @@ fetch_package() {
           | test("(^|[^A-Za-z0-9])(alpha|beta|rc|pre|preview|dev|nightly|snapshot)([^A-Za-z0-9]|$)"; "i")
           | not
         )
-    ][:$keep]
-    | map({
-        tag: .tag_name,
-        assets: (.assets // [])
-      })
+      | {
+          tag: .tag_name,
+          assets: (.assets // [])
+        }
+    ] as $stable
+    | $stable[:$keep] as $newest
+    | ([$stable[0] | minor] | first) as $current
+    | [$stable[] | select(([minor] | first) as $own | $current != null and $own != null and $own < $current)] as $older
+    | ([$older[] | minor] | max) as $previous
+    | $newest + [
+        first($older[] | select(minor == $previous))
+        | select(.tag as $tag | $newest | all(.tag != $tag))
+      ]
   ' "$releases_file" > "$selection_file"
 
   release_count="$(jq 'length' "$selection_file")"

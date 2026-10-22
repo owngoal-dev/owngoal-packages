@@ -10,8 +10,10 @@ deb [trusted=yes] https://apt.owngoal.dev/ ./
 
 ## Packages
 
-Track a GitHub repo in `manifest.json`. The build indexes up to five stable
-releases and serves each `.deb` from its GitHub release URL.
+Track a GitHub repo in `manifest.json`. The build indexes its three newest
+stable releases and the newest release of the minor version before them, at
+most four, and serves each `.deb` from its GitHub release URL. Depiction
+changelogs show the five newest releases.
 
 ```json
 {

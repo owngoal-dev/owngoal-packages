@@ -72,6 +72,15 @@ class ChangelogTests(unittest.TestCase):
         for repo, original in originals.items():
             self.assertEqual(self.depiction_path(repo).read_bytes(), original)
 
+    def test_changelog_keeps_the_five_newest_releases(self):
+        history = [
+            release(f"v1.{minor}", published_at=f"2026-09-{minor + 10:02d}T00:00:00Z")
+            for minor in range(7)
+        ]
+        tab = changelogs.changelog_tab(history, "Fila")
+        titles = [view["views"][0]["text"] for view in tab["views"] if view["class"] == "DepictionLayerView"]
+        self.assertEqual(titles, ["v1.6", "v1.5", "v1.4", "v1.3", "v1.2"])
+
     def test_no_stable_releases_omits_changelog(self):
         self.assertIsNone(changelogs.changelog_tab([release(prerelease=True)], "Fila"))
         fetch = lambda _: []
