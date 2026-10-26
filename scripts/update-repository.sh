@@ -157,7 +157,7 @@ apt-ftparchive \
   -o APT::FTPArchive::Release::Suite="stable" \
   -o APT::FTPArchive::Release::Version="1.0" \
   -o APT::FTPArchive::Release::Codename="owngoal" \
-  -o APT::FTPArchive::Release::Architectures="iphoneos-arm iphoneos-arm64 iphoneos-arm64e xros-arm64e" \
+  -o APT::FTPArchive::Release::Architectures="iphoneos-arm iphoneos-arm64 iphoneos-arm64e xros-arm64e appletvos-arm64e" \
   -o APT::FTPArchive::Release::Components="main" \
   -o APT::FTPArchive::Release::Description="Official iOS packages from OwnGoal Studio" \
   release "$index_dir" > "$work_dir/Release"

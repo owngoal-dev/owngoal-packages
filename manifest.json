@@ -37,7 +37,8 @@
       "repository": "https://github.com/Lakr233/Irisin",
       "architectures": [
         "iphoneos-arm64e",
-        "iphoneos-arm64"
+        "iphoneos-arm64",
+        "appletvos-arm64e"
       ]
     },
     {
