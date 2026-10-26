@@ -1,0 +1,30 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 100 100"
+  width="512"
+  height="512"
+  role="img"
+  aria-label="Own Goal Studio soccer ball"
+>
+  <defs>
+    <clipPath id="ball">
+      <circle cx="50" cy="50" r="46" />
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#ball)">
+    <circle cx="50" cy="50" r="46" fill="#000" />
+
+    <g fill="#fff">
+      <polygon points="50,34 64,42 64,58 50,66 36,58 36,42" />
+      <polygon points="90,38 100,44 100,56 90,62 80,56 80,44" />
+      <polygon points="70,73 80,79 80,91 70,97 60,91 60,79" />
+      <polygon points="30,73 40,79 40,91 30,97 20,91 20,79" />
+      <polygon points="10,38 20,44 20,56 10,62 0,56 0,44" />
+      <polygon points="30,3 40,9 40,21 30,27 20,21 20,9" />
+      <polygon points="70,3 80,9 80,21 70,27 60,21 60,9" />
+    </g>
+  </g>
+
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#000" stroke-width="8" />
+</svg>
