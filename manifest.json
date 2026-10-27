@@ -143,6 +143,84 @@
         "iphoneos-arm64"
       ],
       "allPackages": true
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/Alderis",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/AltList",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/CCSupport",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/libcephei",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/Choicy",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/Comet",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/ellekit",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/oldabi-c",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/libSandy",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/orion",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/preferenceloader",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/rootless-patcher",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/DynamicPatches",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
     }
   ]
 }
