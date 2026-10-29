@@ -35,9 +35,9 @@ Or put a `.deb` in `debs/` and push. Control fields are in
 icon, and banner go in `depictions/<package>/`.
 
 `owngoal-essential-apps` (the five OwnGoal apps) and
-`owngoal-bootstrap-vphone` (the Procursus base system and command-line tools,
-and the essential apps; on Apple TV, OwnGoal Stripe's builds of those tools and
-Irisin) are metapackages kept in `debs/`. Their sources are the
+`owngoal-bootstrap-vphone` (the base system and command-line tools, from
+OwnGoal Stripe on roothide and Procursus on rootless, and the essential apps;
+on Apple TV, Stripe's tools and Irisin) are metapackages kept in `debs/`. Their sources are the
 `owngoal-essential-apps` and `owngoal-bootstrap-vphone` projects; `make publish`
 there updates `debs/` and `depictions/`.
 
