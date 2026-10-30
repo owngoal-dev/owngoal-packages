@@ -17,7 +17,8 @@
     {
       "repository": "https://github.com/owngoal-dev/Umbra",
       "architectures": [
-        "iphoneos-arm64e"
+        "iphoneos-arm64e",
+        "appletvos-arm64e"
       ]
     },
     {
@@ -183,7 +184,8 @@
     {
       "repository": "https://github.com/owngoal-dev/ellekit",
       "architectures": [
-        "iphoneos-arm64e"
+        "iphoneos-arm64e",
+        "appletvos-arm64e"
       ]
     },
     {
