@@ -223,6 +223,12 @@
       "architectures": [
         "iphoneos-arm64e"
       ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/PatchLoader",
+      "architectures": [
+        "iphoneos-arm64e"
+      ]
     }
   ]
 }
