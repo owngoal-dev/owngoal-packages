@@ -236,6 +236,13 @@
         "iphoneos-arm64e",
         "iphoneos-arm64"
       ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/LensLock",
+      "architectures": [
+        "iphoneos-arm64e",
+        "iphoneos-arm64"
+      ]
     }
   ]
 }
