@@ -229,6 +229,13 @@
       "architectures": [
         "iphoneos-arm64e"
       ]
+    },
+    {
+      "repository": "https://github.com/owngoal-dev/DeviceHubEnabler",
+      "architectures": [
+        "iphoneos-arm64e",
+        "iphoneos-arm64"
+      ]
     }
   ]
 }
